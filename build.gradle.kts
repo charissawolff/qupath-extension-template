@@ -9,10 +9,10 @@ plugins {
 
 // TODO: Configure your extension here (please change the defaults!)
 qupathExtension {
-    name = "qupath-extension-template"
-    group = "io.github.qupath"
+    name = "vectra-extension"
+    group = "computational-immunology-group"
     version = "0.1.0-SNAPSHOT"
-    description = "A simple QuPath extension"
+    description = "For the vectra server"
     automaticModule = "io.github.qupath.extension.template"
 }
 
