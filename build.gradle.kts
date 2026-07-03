@@ -27,6 +27,14 @@ dependencies {
     // If you aren't using Groovy, this can be removed
     shadow(libs.bundles.groovy)
 
+    // Third-party libraries used by the extension source.
+    // Bundled into the shadow jar so they're available at runtime.
+    implementation("org.json:json:20250107")
+    implementation("org.apache.sshd:sshd-core:2.14.0")
+
+    // Compile-only nullness annotations (not needed at runtime)
+    compileOnly("org.checkerframework:checker-qual:3.49.0")
+
     // For testing
     testImplementation(libs.bundles.qupath)
     testImplementation(libs.junit)
