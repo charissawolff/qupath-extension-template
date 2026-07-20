@@ -1,4 +1,4 @@
-package org.computational_immunology;
+package org.computational_immunology.ext.ImmuNet.core;
 
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.session.ClientSession;

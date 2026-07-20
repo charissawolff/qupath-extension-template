@@ -1,5 +1,5 @@
-import org.computational_immunology.Tile;
-import org.computational_immunology.Tile.ImageType;
+import org.computational_immunology.ext.ImmuNet.core.Tile;
+import org.computational_immunology.ext.ImmuNet.core.Tile.ImageType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

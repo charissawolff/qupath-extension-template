@@ -1,4 +1,4 @@
-package org.computational_immunology;
+package org.computational_immunology.ext.ImmuNet.core;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;

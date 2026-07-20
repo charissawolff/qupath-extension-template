@@ -1,6 +1,13 @@
-package org.computational_immunology;
+package org.computational_immunology.ext.ImmuNet.ui;
 
 import java.util.List;
+
+import org.computational_immunology.ext.ImmuNet.core.ImmuNetLog;
+import org.computational_immunology.ext.ImmuNet.core.ServerConnectionHandler;
+import org.computational_immunology.ext.ImmuNet.core.ServerRequestHandler;
+import org.computational_immunology.ext.ImmuNet.core.StreamedImageServer;
+import org.computational_immunology.ext.ImmuNet.core.Tile;
+
 import java.io.IOException;
 
 import qupath.lib.gui.QuPathGUI;

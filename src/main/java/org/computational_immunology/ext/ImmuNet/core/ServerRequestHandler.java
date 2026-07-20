@@ -1,4 +1,4 @@
-package org.computational_immunology;
+package org.computational_immunology.ext.ImmuNet.core;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.computational_immunology.Tile.ImageType;
+import org.computational_immunology.ext.ImmuNet.core.Tile.ImageType;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;

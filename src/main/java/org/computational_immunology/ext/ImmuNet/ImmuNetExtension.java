@@ -1,4 +1,7 @@
-package org.computational_immunology;
+package org.computational_immunology.ext.ImmuNet;
+
+import org.computational_immunology.ext.ImmuNet.ui.DatasetSelectorTab;
+import org.computational_immunology.ext.ImmuNet.ui.ServerConnectionTab;
 
 import qupath.lib.gui.QuPathGUI;
 import qupath.lib.gui.extensions.QuPathExtension;

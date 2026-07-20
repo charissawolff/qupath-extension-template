@@ -1,6 +1,10 @@
-package org.computational_immunology;
+package org.computational_immunology.ext.ImmuNet.ui;
 
 import java.util.List;
+
+import org.computational_immunology.ext.ImmuNet.core.Dimensions;
+import org.computational_immunology.ext.ImmuNet.core.ImmuNetLog;
+import org.computational_immunology.ext.ImmuNet.core.ServerRequestHandler;
 
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;

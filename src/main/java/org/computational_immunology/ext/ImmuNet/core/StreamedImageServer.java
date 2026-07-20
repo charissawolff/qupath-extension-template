@@ -1,4 +1,4 @@
-package org.computational_immunology;
+package org.computational_immunology.ext.ImmuNet.core;
 
 import qupath.lib.images.servers.*;
 import qupath.lib.regions.RegionRequest;
