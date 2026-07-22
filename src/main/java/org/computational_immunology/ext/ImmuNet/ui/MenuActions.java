@@ -21,6 +21,7 @@ public class MenuActions {
         ServerConnectionHandler.getInstance().performDatabaseLogin(dbuser,dbpass);
     }
 
+    //todo: figure out what this is for
     public static void updateListViewerBox(ListViewerBox box, List<String> list){
         box.setItems(list);
     }

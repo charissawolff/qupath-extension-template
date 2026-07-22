@@ -1,6 +1,10 @@
 package org.computational_immunology.ext.ImmuNet.core;
 
-import qupath.lib.images.servers.*;
+import qupath.lib.images.servers.ImageServerMetadata;
+import qupath.lib.images.servers.ImageServerBuilder;
+import qupath.lib.images.servers.AbstractImageServer;
+import qupath.lib.images.servers.ImageChannel;
+import qupath.lib.images.servers.PixelType;
 import qupath.lib.regions.RegionRequest;
 
 import java.awt.image.BufferedImage;
@@ -21,8 +25,8 @@ public class StreamedImageServer extends AbstractImageServer<BufferedImage> {
     @Override
     public synchronized ImageServerMetadata getMetadata() {
         try {
-            final int width = OwnedTile.getImage().getWidth();
-            final int height = OwnedTile.getImage().getHeight();
+            final int width = (int)OwnedTile.tileW;
+            final int height = (int)OwnedTile.tileH;
 
             return new ImageServerMetadata.Builder()
                     .width(width)
@@ -34,7 +38,7 @@ public class StreamedImageServer extends AbstractImageServer<BufferedImage> {
                     .rgb(true)
                     .pixelType(PixelType.UINT8)
                     .preferredTileSize(width,height).build();
-        } catch (IOException e) {
+        } catch (Exception e) {
             ImmuNetLog.error("Couldn't get metadata of ImageServer", e);
             throw new RuntimeException(e);
         }
