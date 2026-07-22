@@ -13,24 +13,26 @@ import qupath.lib.objects.PathObject;
 /**
  * A listener on the main viewer, for which we show the slide. It listens for changes in the viewer,
  * and specifically, whether the visible region has changed in zoom level.
- * We keep a boolean with this information
- * related to a QuPathViewer has changed in some way - such as by changing 
- * the underlying ImageData, or by moving the field of view.
- * 
- * 
- *
+ * I think a good approach is to be that when the zoom is under the threshold, to not keep updating (listening)
+ * on the viewer, only when it was zoomed out and then crosses the boundary to become zoomed in.
+ * Then we fire something, in this case an api call to the server to fetch higher quality tiles.
  */
 public class MainViewerListener implements QuPathViewerListener {
 
-    private static final double TARGET_DOWNSAMPLE = 1.0 / 25.0;
-    private static final double EPSILON = 1e-4;
+    // make it 4 times smaller than what was originally set.
+    private static final double TARGET_DOWNSAMPLE = 1.0 / 4.0;
+    private static boolean isZoomedIn = false;
+    private boolean wasZoomedIn = false; 
 
     @Override
     public void visibleRegionChanged(QuPathViewer viewer, Shape shape) {
         double downsample = viewer.getDownsampleFactor();
-        if (downsample < TARGET_DOWNSAMPLE) {
-            ImmuNetLog.log("downsample is less than target downsample");
-        }
+        boolean isZoomedInNow = downsample < TARGET_DOWNSAMPLE;
+        if (isZoomedInNow && !wasZoomedIn) {
+                ImmuNetLog.log("crossed into zoomed-in range");
+                // this is the one moment to fire your callback
+            }
+        wasZoomedIn = isZoomedInNow;
     }
 
     @Override
