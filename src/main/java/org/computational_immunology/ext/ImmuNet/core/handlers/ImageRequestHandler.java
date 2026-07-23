@@ -1,12 +1,16 @@
 package org.computational_immunology.ext.ImmuNet.core.handlers;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import javax.imageio.ImageIO;
+
+import java.awt.image.BufferedImage;
 
 import org.computational_immunology.ext.ImmuNet.core.ImmuNetLog;
+import org.computational_immunology.ext.ImmuNet.core.Tile;
 import org.computational_immunology.ext.ImmuNet.core.TileMetadata;
 import org.computational_immunology.ext.ImmuNet.core.TileMetadata.ImageType;
 import org.json.JSONArray;
@@ -14,23 +18,21 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class ImageRequestHandler {
+    private static final String TILE_IMAGE_PATH_FORMAT = "v/datasets/%s/%s/%s/%s.jpg"; // datasetName, slideName, tileCode, imageType
+    private static final String TILEMETADATAPATH_FORMAT = "v/datasets/%s/%s/"; // datasetName, slideName
     private final PageFetcher pageFetcher;
-
-    public record Point(double x, double y) {}
-
-    private Map<Point, String> slideMap;
 
     public ImageRequestHandler(PageFetcher pageFetcher) {
         this.pageFetcher = pageFetcher;
     }
 
     // Get list of tiles belonging to a slide
-    public List<TileMetadata> getAllTiles(String datasetName, String slideName) throws IOException, InterruptedException {
-        String path = "v/datasets/" + datasetName + '/' + slideName + '/';
+    public List<TileMetadata> getAllTileMetadatas(String datasetName, String slideName) throws IOException, InterruptedException {
+        String path = String.format(TILEMETADATAPATH_FORMAT, datasetName, slideName);
         List<TileMetadata> tileMetadatas;
         String allTilesJson = pageFetcher.fetchStringPage(path).body();
 
-        ImmuNetLog.log("Path at getAllTiles is " + path);
+        ImmuNetLog.log("Path at getAllTileMetadatas is " + path);
         ImmuNetLog.log(allTilesJson);
 
         JSONArray parsedOutput = new JSONArray(allTilesJson);
@@ -39,18 +41,31 @@ public class ImageRequestHandler {
         return tileMetadatas;
     }
 
+    public Tile fetchTileImage(TileMetadata tileMetadata, String datasetName, String slideName) throws IOException, InterruptedException {
+        // Fetch the image for a specific tile using its metadata and the dataset/slide names. Check for null image and throw IOException if the image cannot be decoded.
+        String path = String.format(TILE_IMAGE_PATH_FORMAT, datasetName, slideName, tileMetadata.getCode(), tileMetadata.getType().toString());
+        try (InputStream imageInputStream = pageFetcher.fetchPage(path).body()) {
+            BufferedImage image = ImageIO.read(imageInputStream);
+            if (image == null) {
+                throw new IOException("Could not decode image data for tile code: " + tileMetadata.getCode() + " at path: " + path);
+            }
+            return new Tile(tileMetadata, image);
+        } catch (IOException e) {
+            ImmuNetLog.error("Error fetching tile image for tile code: " + tileMetadata.getCode() + " at path: " + path, e);
+            throw e;
+        }
+    }
+
+
+
     // Convert json to list of tiles
     private List<TileMetadata> jsonToTileMetadatas(JSONArray array, ImageType type) throws IOException, InterruptedException {
-        Map<Point, String> coordsToCode = new HashMap<>();
         List<TileMetadata> tileMetadatas = new ArrayList<>();
         ImmuNetLog.log("converting json to tiles");
         for (int i = 0; i < array.length(); i++) {
             JSONObject tile = array.getJSONObject(i);
             tileMetadatas.add(jsonToTileMetadata(tile, type));
-            Point tileCoord = new Point(tile.getDouble("x"), tile.getDouble("y"));
-            coordsToCode.put(tileCoord, tile.getString("code")); // map coordinates of a tile to its code
         }
-        slideMap = coordsToCode;
         ImmuNetLog.log("tiles converted");
         return tileMetadatas;
     }
@@ -95,9 +110,5 @@ public class ImageRequestHandler {
             ImmuNetLog.error("Error in fetching webpage list of items. Localpath: " + localPath, e);
         }
         return datasetList;
-    }
-
-    public Map<Point, String> getSlideMap() {
-        return slideMap;
     }
 }

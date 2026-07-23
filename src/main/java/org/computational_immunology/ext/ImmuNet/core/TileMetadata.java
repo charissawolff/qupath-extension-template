@@ -25,4 +25,13 @@ public record TileMetadata(int id, String code, ImageType type, double x, double
             throw new IllegalArgumentException("type cannot be null");
         }
     }
+
+    public String getCode() {
+        return code;
+    }
+
+    public ImageType getType() {
+        return type;
+    }
+
 }
