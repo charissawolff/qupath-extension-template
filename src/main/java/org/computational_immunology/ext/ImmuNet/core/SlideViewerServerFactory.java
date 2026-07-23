@@ -10,6 +10,14 @@ import java.io.IOException;
 import java.util.List;
 
 public class SlideViewerServerFactory {
+    // SparseImageServerManager's per-region level selection only ever compares the requested
+    // downsample against the registered THUMB value when there are just two levels. As soon as
+    // the viewer's zoom passes below it, composite is selected, regardless of how far
+    // off composite's own value is. Making thumb at a deliberately smaller number than its true
+    // native resolution means QuPath keeps serving (upscaled) thumb for longer, giving the user a
+    // buffer of extra zoom before getting composite.
+    private static final double THUMB_ZOOM_BUFFER_FACTOR = 1.5;
+
     public static SparseImageServer build(
             List<TileMetadata> tileMetadataList,
             String datasetName,
@@ -19,6 +27,15 @@ public class SlideViewerServerFactory {
             double[] downsamples = deriveDownsamples(tileMetadataList, datasetName, slideName, imageRequestHandler);
             double downsampleThumb = downsamples[0];
             double downsampleComposite = downsamples[1];
+
+            // Registered value, not the true measured one - see THUMB_ZOOM_BUFFER_FACTOR.
+            double registeredDownsampleThumb = downsampleThumb / THUMB_ZOOM_BUFFER_FACTOR;
+            if (registeredDownsampleThumb <= downsampleComposite) {
+                ImmuNetLog.error("THUMB_ZOOM_BUFFER_FACTOR too large for this slide's downsamples ("
+                        + downsampleThumb + "/" + THUMB_ZOOM_BUFFER_FACTOR + " would drop to or below "
+                        + downsampleComposite + "), going inbetween then");
+                registeredDownsampleThumb = (downsampleThumb + downsampleComposite) / 2;
+            }
 
             SparseImageServer.Builder builder = new SparseImageServer.Builder();
             for (var tileMetadata : tileMetadataList) {
@@ -31,7 +48,7 @@ public class SlideViewerServerFactory {
                 );
 
                 TileMetadata thumbTile = tileMetadata.withType(TileMetadata.ImageType.THUMB);
-                builder.serverRegion(tileRegion, downsampleThumb,
+                builder.serverRegion(tileRegion, registeredDownsampleThumb,
                         new StreamedImageServer(thumbTile, datasetName, slideName, imageRequestHandler));
 
                 TileMetadata compositeTile = tileMetadata.withType(TileMetadata.ImageType.COMPOSITE);

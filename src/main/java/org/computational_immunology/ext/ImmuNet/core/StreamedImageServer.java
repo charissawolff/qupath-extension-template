@@ -87,6 +87,19 @@ public class StreamedImageServer extends AbstractImageServer<BufferedImage> {
             Tile fetchedTile = imageRequestHandler.fetchTileImage(tileMetadata, datasetName, slideName);
             BufferedImage image = fetchedTile.getImage();
             double downsample = request.getDownsample();
+
+            // request.getDownsample() is the *registered* level's own value, not necessarily the
+            // real fetched image's true native resolution (e.g. THUMB_ZOOM_BUFFER_FACTOR deliberately
+            // registers thumb smaller than it really is, as a hack to let users zoom in before changing to composite). 
+            // Resize to whatever size this request's
+            // downsample implies for the whole tile first, so the geometry is self-consistent
+            // regardless of any mismatch between registered and true resolution.
+            int expectedFullWidth = (int) Math.round(tileMetadata.getWidth() / downsample);
+            int expectedFullHeight = (int) Math.round(tileMetadata.getHeight() / downsample);
+            if (image.getWidth() != expectedFullWidth || image.getHeight() != expectedFullHeight) {
+                image = Tile.resizeImage(image, expectedFullWidth, expectedFullHeight, true);
+            }
+
             int x = (int) Math.round(request.getX() / downsample);
             int y = (int) Math.round(request.getY() / downsample);
             int requestedWidth = (int) Math.round(request.getWidth() / downsample);
