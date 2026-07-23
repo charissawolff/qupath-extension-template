@@ -34,4 +34,20 @@ public record TileMetadata(int id, String code, ImageType type, double x, double
         return type;
     }
 
+    public int getId() {
+        return id;
+    }
+    public double getX() {
+        return x;
+    }
+    public double getY() {
+        return y;
+    }
+    public double getWidth() {
+        return w;
+    }
+    public double getHeight() {
+        return h;
+    }
+
 }

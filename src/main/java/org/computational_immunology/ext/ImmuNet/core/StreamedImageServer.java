@@ -1,5 +1,8 @@
 package org.computational_immunology.ext.ImmuNet.core;
 
+import org.computational_immunology.ext.ImmuNet.core.TileMetadata;
+import org.computational_immunology.ext.ImmuNet.core.handlers.ImageRequestHandler;
+
 import qupath.lib.images.servers.ImageServerMetadata;
 import qupath.lib.images.servers.ImageServerBuilder;
 import qupath.lib.images.servers.AbstractImageServer;
@@ -15,25 +18,32 @@ import java.util.List;
 
 
 public class StreamedImageServer extends AbstractImageServer<BufferedImage> {
-    public StreamedImageServer(Tile Tile) {
-        super(BufferedImage.class);
-        this.OwnedTile = Tile;
-    }
+    private TileMetadata tileMetadata;
+    private String datasetName;
+    private String slideName;
+    private ImageRequestHandler imageRequestHandler;
+    
 
-    private Tile OwnedTile;
+    public StreamedImageServer(TileMetadata tileMetadata, String datasetName, String slideName, ImageRequestHandler imageRequestHandler) {
+        super(BufferedImage.class);
+        this.tileMetadata = tileMetadata;
+        this.datasetName = datasetName;
+        this.slideName = slideName;
+        this.imageRequestHandler = imageRequestHandler;
+    }
 
     @Override
     public synchronized ImageServerMetadata getMetadata() {
         try {
-            final int width = (int)OwnedTile.getTileW();
-            final int height = (int)OwnedTile.getTileH();
+            final int width = (int)tileMetadata.getWidth();
+            final int height = (int)tileMetadata.getHeight();
 
             return new ImageServerMetadata.Builder()
                     .width(width)
                     .height(height)
                     // Temporary: code stands in for a real identifier until dataset/slide
                     // context (SlideRef) is threaded through to StreamedImageServer.
-                    .name(OwnedTile.getCode())
+                    .name(tileMetadata.getCode())
                     .channels(ImageChannel.getDefaultRGBChannels())
                     .sizeZ(0)
                     .sizeT(0)
@@ -54,19 +64,24 @@ public class StreamedImageServer extends AbstractImageServer<BufferedImage> {
 
     @Override
     protected String createID() {
-        return OwnedTile.getCode();
+        return tileMetadata.getCode();
     }
 
     @Override
     public Collection<URI> getURIs() {
-        return List.of(URI.create(OwnedTile.getCode()));
+        return List.of(URI.create(tileMetadata.getCode()));
     }
 
     @Override
     public BufferedImage readRegion(RegionRequest request) throws IOException {
-        ImmuNetLog.log("readRegion: {}, {}", request, getPath());
-        return OwnedTile.getImage().getSubimage(request.getX(), request.getY(), request.getWidth(),
-                request.getHeight());
+        ImmuNetLog.log("readRegion: {}", request);
+        try {
+            Tile fetchedTile = imageRequestHandler.fetchTileImage(tileMetadata, datasetName, slideName);
+            return fetchedTile.getImage();
+        } catch (IOException | InterruptedException e) {
+            ImmuNetLog.error("Error fetching tile image", e);
+            throw new IOException("Error fetching tile image that exists according to the database. Tile code: " + tileMetadata.getCode(), e);
+        }
     }
 
     @Override
