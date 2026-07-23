@@ -1,5 +1,7 @@
 package org.computational_immunology.ext.ImmuNet.core;
 
+import org.computational_immunology.ext.ImmuNet.core.handlers.ImageRequestHandler;
+
 import qupath.lib.images.servers.ImageServer;
 import qupath.lib.images.servers.ImageServerBuilder;
 
@@ -8,7 +10,10 @@ import java.io.IOException;
 import java.net.URI;
 
 public class StreamedImageServerBuilder implements ImageServerBuilder<BufferedImage> {
-    Tile ownedTile;
+    TileMetadata tileMetadata;
+    String datasetName;
+    String slideName;
+    ImageRequestHandler imageRequestHandler;
 
     @Override
     public UriImageSupport<BufferedImage> checkImageSupport(URI uri, String... args) throws IOException {
@@ -17,11 +22,14 @@ public class StreamedImageServerBuilder implements ImageServerBuilder<BufferedIm
 
     @Override
     public ImageServer<BufferedImage> buildServer(URI uri, String... args) throws Exception {
-        return new StreamedImageServer(ownedTile);
+        return new StreamedImageServer(tileMetadata, datasetName, slideName, imageRequestHandler);
     }
 
-    public StreamedImageServerBuilder tile(Tile inTile){
-        ownedTile = inTile;
+    public StreamedImageServerBuilder forTile(TileMetadata tileMetadata, String datasetName, String slideName, ImageRequestHandler imageRequestHandler) {
+        this.tileMetadata = tileMetadata;
+        this.datasetName = datasetName;
+        this.slideName = slideName;
+        this.imageRequestHandler = imageRequestHandler;
         return this;
     }
 

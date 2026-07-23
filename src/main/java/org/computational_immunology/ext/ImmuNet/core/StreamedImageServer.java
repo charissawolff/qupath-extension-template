@@ -77,7 +77,7 @@ public class StreamedImageServer extends AbstractImageServer<BufferedImage> {
         ImmuNetLog.log("readRegion: {}", request);
         try {
             Tile fetchedTile = imageRequestHandler.fetchTileImage(tileMetadata, datasetName, slideName);
-            return fetchedTile.getImage();
+            return fetchedTile.getImage().getSubimage(request.getX(), request.getY(), request.getWidth(), request.getHeight());
         } catch (IOException | InterruptedException e) {
             ImmuNetLog.error("Error fetching tile image", e);
             throw new IOException("Error fetching tile image that exists according to the database. Tile code: " + tileMetadata.getCode(), e);
