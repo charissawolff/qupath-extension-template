@@ -12,11 +12,12 @@ import java.util.List;
 public class SlideViewerServerFactory {
     // SparseImageServerManager's per-region level selection only ever compares the requested
     // downsample against the registered THUMB value when there are just two levels. As soon as
-    // the viewer's zoom passes below it, composite is selected, regardless of how far
-    // off composite's own value is. Making thumb at a deliberately smaller number than its true
-    // native resolution means QuPath keeps serving (upscaled) thumb for longer, giving the user a
-    // buffer of extra zoom before getting composite.
-    private static final double THUMB_ZOOM_BUFFER_FACTOR = 1.5;
+    // the viewer's zoom passes below it, composite is selected, regardless of how far off
+    // composite's own value. This constant is the actual switch-to-composite threshold.
+    // Fixed at an absolute downsample.  StreamedImageServer.readRegion then 
+    // resizes the real fetched thumb image to whatever size this implies, so registering thumb here
+    // instead of at its true native resolution stays consistent.
+    private static final double COMPOSITE_SWITCH_DOWNSAMPLE = 2;
 
     public static SparseImageServer build(
             List<TileMetadata> tileMetadataList,
@@ -28,12 +29,13 @@ public class SlideViewerServerFactory {
             double downsampleThumb = downsamples[0];
             double downsampleComposite = downsamples[1];
 
-            // Registered value, not the true measured one - see THUMB_ZOOM_BUFFER_FACTOR.
-            double registeredDownsampleThumb = downsampleThumb / THUMB_ZOOM_BUFFER_FACTOR;
+            double registeredDownsampleThumb = COMPOSITE_SWITCH_DOWNSAMPLE;
             if (registeredDownsampleThumb <= downsampleComposite) {
-                ImmuNetLog.error("THUMB_ZOOM_BUFFER_FACTOR too large for this slide's downsamples ("
-                        + downsampleThumb + "/" + THUMB_ZOOM_BUFFER_FACTOR + " would drop to or below "
-                        + downsampleComposite + "), going inbetween then");
+                // This slide's composite is coarser than COMPOSITE_SWITCH_DOWNSAMPLE, so we fall back to the midpoint, which is
+                // guaranteed to stay strictly between the two true values so it can never invert the order (so composite will never be loaded before thumb zooming out).
+                ImmuNetLog.error("COMPOSITE_SWITCH_DOWNSAMPLE (" + COMPOSITE_SWITCH_DOWNSAMPLE
+                        + ") is at or below this slide's downsampleComposite (" + downsampleComposite
+                        + "), using the midpoint instead.");
                 registeredDownsampleThumb = (downsampleThumb + downsampleComposite) / 2;
             }
 
