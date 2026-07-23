@@ -90,6 +90,9 @@ public class SlideViewerServerFactory {
         double compositeHeightRatio = sampleMetadata.getHeight() / compositeSample.getHeight();
         double downsampleComposite = (compositeWidthRatio + compositeHeightRatio) / 2.0;
 
+        ImmuNetLog.log("Derived downsamples from sample tile {}: downsampleThumb={}, downsampleComposite={}",
+                sampleMetadata.getCode(), downsampleThumb, downsampleComposite);
+
         return new double[]{downsampleThumb, downsampleComposite};
     }
 }

@@ -1,70 +1,76 @@
-// Disabled: this was an early copy-paste draft, superseded by the SelectSlideCommand
-// design built up interactively (Runnable, cancellable Task, calls a slide-server loader).
-// Kept commented out rather than deleted while the real version is being built.
-//
-// package org.computational_immunology.ext.ImmuNet.ui;
-//
-// import java.util.List;
-//
-// import org.computational_immunology.ext.ImmuNet.core.ImmuNetLog;
-// import org.computational_immunology.ext.ImmuNet.core.ServerConnectionHandler;
-// import org.computational_immunology.ext.ImmuNet.core.ServerRequestHandler;
-// import org.computational_immunology.ext.ImmuNet.core.StreamedImageServer;
-// import org.computational_immunology.ext.ImmuNet.core.Tile;
-//
-// import java.io.IOException;
-//
-// import qupath.lib.gui.QuPathGUI;
-// import qupath.lib.images.ImageData;
-// import qupath.lib.images.servers.SparseImageServer;
-// import qupath.lib.regions.ImageRegion;
-//
-//
-// public class SelectSlideCommand implements Runnable {
-//
-// 	private ObservableValue<? extends QuPathViewer> viewerValue;
-// 	private int zoomAmount;
-//
-//     public static void connectToServer(String username, String hostname, String password, String dbuser, String dbpass) throws Exception {
-//         ServerConnectionHandler.getInstance().startSSHThread(username, hostname, password);
-//         ServerConnectionHandler.getInstance().performDatabaseLogin(dbuser,dbpass);
-//     }
-//     public static void setStreamedServer(String datasetName, String slideName) {
-//         try {
-//             List<Tile> tiles = ServerRequestHandler.getAllTiles(
-//                     datasetName, slideName
-//             );
-//             try {
-//                 SparseImageServer server = createSparseImageServer(tiles);
-//                 QuPathGUI.getInstance().getViewer().setImageData(new ImageData<>(server));
-//                 ImmuNetLog.log("Successfully set Image Data.");
-//             } catch (IOException e) {
-//                 ImmuNetLog.error("Could not set image data",e);
-//             }
-//         } catch (IOException | InterruptedException e) {
-//             ImmuNetLog.error("Could not fetch tiles. Are you connected to the server?",e);
-//         }
-//     }
-//
-//     private static SparseImageServer createSparseImageServer(List<Tile> tiles) throws IOException, InterruptedException {
-//         SparseImageServer.Builder builder = new SparseImageServer.Builder();
-//
-//         for (var tile : tiles) {
-//             StreamedImageServer tileServer = new StreamedImageServer(tile);
-//             ImageRegion region = ImageRegion.createInstance(
-//                     (int)tile.getTileX(),
-//                     (int)tile.getTileY(),
-//                     (int)tile.tileW, (int)tile.tileH, 1,0
-//             );
-//             ImmuNetLog.log("serverRegion add: ({}), ({}), ({}, {})", tileServer, region, tile.tileW, tile.tileH);
-//             builder.serverRegion(region, 1, tileServer);
-//         }
-//
-//         return builder.build();
-//     }
-//
-//     private SelectSlideCommand() {
-//         // This utility class should not be instantiated
-//     }
-//
-// }
+package org.computational_immunology.ext.ImmuNet.ui.commands;
+
+import org.computational_immunology.ext.ImmuNet.core.ImmuNetLog;
+import org.computational_immunology.ext.ImmuNet.core.SlideViewerServerFactory;
+import org.computational_immunology.ext.ImmuNet.core.TileMetadata;
+import org.computational_immunology.ext.ImmuNet.core.handlers.ImageRequestHandler;
+
+import javafx.concurrent.Task;
+
+import qupath.lib.gui.QuPathGUI;
+import qupath.lib.gui.viewer.QuPathViewer;
+import qupath.lib.images.ImageData;
+import qupath.lib.images.servers.SparseImageServer;
+
+import java.io.IOException;
+import java.util.List;
+
+/**
+ * Captures the selected dataset/slide once at click time, then loads it in a cancellable
+ * background Task. 
+ */
+public class SelectSlideCommand implements Runnable {
+
+    private final String datasetName;
+    private final String slideName;
+    private final ImageRequestHandler imageRequestHandler;
+    private Task<SparseImageServer> task;
+
+    public SelectSlideCommand(String datasetName, String slideName, ImageRequestHandler imageRequestHandler) {
+        this.datasetName = datasetName;
+        this.slideName = slideName;
+        this.imageRequestHandler = imageRequestHandler;
+    }
+
+    @Override
+    public void run() {
+        task = new Task<>() {
+            @Override
+            protected SparseImageServer call() throws Exception {
+                List<TileMetadata> tiles = imageRequestHandler.getAllTileMetadatas(datasetName, slideName);
+                return SlideViewerServerFactory.build(tiles, datasetName, slideName, imageRequestHandler);
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            QuPathViewer viewer = QuPathGUI.getInstance().getViewer();
+            if (viewer != null) {
+                try {
+                    viewer.setImageData(new ImageData<>(task.getValue()));
+                    ImmuNetLog.log("Successfully opened {}/{}", datasetName, slideName);
+                } catch (IOException e) {
+                    ImmuNetLog.error("Could not set image data for " + datasetName + "/" + slideName, e);
+                }
+            }
+        });
+
+        task.setOnFailed(event ->
+                ImmuNetLog.error("Could not open " + datasetName + "/" + slideName, task.getException()));
+
+        task.setOnCancelled(event ->
+                ImmuNetLog.log("Cancelled opening {}/{}", datasetName, slideName));
+
+        Thread thread = new Thread(task, "select-slide-" + datasetName + "-" + slideName);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    /**
+     * @return the background Task backing this command, or null before run() has been called.
+     * Callers that may supersede this command (e.g. selecting a different slide) should hold onto
+     * this and call cancel() on it before starting a new one.
+     */
+    public Task<SparseImageServer> getTask() {
+        return task;
+    }
+}

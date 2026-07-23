@@ -64,20 +64,42 @@ public class StreamedImageServer extends AbstractImageServer<BufferedImage> {
 
     @Override
     protected String createID() {
-        return tileMetadata.getCode();
+        // Must include type, not just code: SparseImageServerManager caches/deduplicates child
+        // servers by the builder this ID produces. Each physical tile is registered twice (once
+        // per resolution), so code alone would make the thumb and composite variants collide onto
+        // the same cache entry, whichever got registered first silently wins for both, regardless
+        // of which downsample was actually requested.
+        return tileMetadata.getCode() + "-" + tileMetadata.getType();
     }
 
     @Override
     public Collection<URI> getURIs() {
-        return List.of(URI.create(tileMetadata.getCode()));
+        // Same reason as createID()
+        return List.of(URI.create(tileMetadata.getCode() + "-" + tileMetadata.getType()));
     }
 
     @Override
     public BufferedImage readRegion(RegionRequest request) throws IOException {
-        ImmuNetLog.log("readRegion: {}", request);
+        ImmuNetLog.log("readRegion: type={} code={} downsample={} request=({},{} {}x{})",
+                tileMetadata.getType(), tileMetadata.getCode(), request.getDownsample(),
+                request.getX(), request.getY(), request.getWidth(), request.getHeight());
         try {
             Tile fetchedTile = imageRequestHandler.fetchTileImage(tileMetadata, datasetName, slideName);
-            return fetchedTile.getImage().getSubimage(request.getX(), request.getY(), request.getWidth(), request.getHeight());
+            BufferedImage image = fetchedTile.getImage();
+            double downsample = request.getDownsample();
+            int x = (int) Math.round(request.getX() / downsample);
+            int y = (int) Math.round(request.getY() / downsample);
+            int requestedWidth = (int) Math.round(request.getWidth() / downsample);
+            int requestedHeight = (int) Math.round(request.getHeight() / downsample);
+
+            x = Math.min(x, image.getWidth());
+            y = Math.min(y, image.getHeight());
+            int width = Math.min(requestedWidth, image.getWidth() - x);
+            int height = Math.min(requestedHeight, image.getHeight() - y);
+            if (width <= 0 || height <= 0) {
+                return new BufferedImage(requestedWidth, requestedHeight, image.getType());
+            }
+            return image.getSubimage(x, y, width, height);
         } catch (IOException | InterruptedException e) {
             ImmuNetLog.error("Error fetching tile image", e);
             throw new IOException("Error fetching tile image that exists according to the database. Tile code: " + tileMetadata.getCode(), e);

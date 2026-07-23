@@ -5,18 +5,21 @@ import java.util.List;
 import org.computational_immunology.ext.ImmuNet.core.Dimensions;
 import org.computational_immunology.ext.ImmuNet.core.ImmuNetLog;
 import org.computational_immunology.ext.ImmuNet.core.handlers.ImageRequestHandler;
-import org.computational_immunology.ext.ImmuNet.core.handlers.ServerConnectionHandler;
+import org.computational_immunology.ext.ImmuNet.ui.commands.SelectSlideCommand;
 
+import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
 
 public class DatasetSelectorTab extends CustomSidePanelTab {
 
-    private final ImageRequestHandler imageRequestHandler = new ImageRequestHandler(ServerConnectionHandler.getInstance());
+    private final ImageRequestHandler imageRequestHandler;
+    private Task<?> currentLoadTask;
 
-    public DatasetSelectorTab() {
+    public DatasetSelectorTab(ImageRequestHandler imageRequestHandler) {
         super("Image selector");
+        this.imageRequestHandler = imageRequestHandler;
     }
 
     /**
@@ -41,8 +44,12 @@ public class DatasetSelectorTab extends CustomSidePanelTab {
             try{
                 String dsName = dsBox.getListView().getSelectionModel().selectedItemProperty().getValue();
                 String tsName = tsBox.getListView().getSelectionModel().selectedItemProperty().getValue();
-                // Pending: wire up to SelectSlideCommand once the async fetch + loader exist.
-                ImmuNetLog.log("Open Image pressed for {}/{} - pending SelectSlideCommand rework", dsName, tsName);
+                if (currentLoadTask != null) {
+                    currentLoadTask.cancel();
+                }
+                SelectSlideCommand command = new SelectSlideCommand(dsName, tsName, imageRequestHandler);
+                command.run();
+                currentLoadTask = command.getTask();
             } catch (NullPointerException exc){
                 ImmuNetLog.error("No dataset of slide selected for opening.", exc);
             }
