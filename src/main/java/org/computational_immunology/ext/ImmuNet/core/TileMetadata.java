@@ -50,4 +50,8 @@ public record TileMetadata(int id, String code, ImageType type, double x, double
         return h;
     }
 
+    public TileMetadata withType(ImageType newType) {
+        return new TileMetadata(id, code, newType, x, y, w, h);
+    }
+
 }
