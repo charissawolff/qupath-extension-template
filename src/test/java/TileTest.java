@@ -17,19 +17,6 @@ class TileTest {
         );
     }
 
-    @Test
-    void getPath(){
-        Tile tile1 = new Tile(1, "/", ImageType.THUMB, "16,38", 0, 0, 1, 1);
-        Assertions.assertEquals("/16,38/thumb.jpg", tile1.getPath());
-        tile1 = new Tile(1, "", ImageType.THUMB, "16,38", 0, 0, 1, 1);
-        Assertions.assertEquals("/16,38/thumb.jpg", tile1.getPath());
-
-        // Verify null handling
-        Assertions.assertThrows(IllegalArgumentException.class, () -> 
-            new Tile(1, null, ImageType.THUMB, "16,38", 0, 0, 1, 1)
-        );
-    }
-
     @Test 
     void getType(){
         Tile tile1 = new Tile(1, "/", ImageType.THUMB, "16,38", 0, 0, 1, 1);

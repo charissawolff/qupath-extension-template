@@ -4,13 +4,16 @@ import java.util.List;
 
 import org.computational_immunology.ext.ImmuNet.core.Dimensions;
 import org.computational_immunology.ext.ImmuNet.core.ImmuNetLog;
-import org.computational_immunology.ext.ImmuNet.core.ServerRequestHandler;
+import org.computational_immunology.ext.ImmuNet.core.handlers.ImageRequestHandler;
+import org.computational_immunology.ext.ImmuNet.core.handlers.ServerConnectionHandler;
 
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
 
 public class DatasetSelectorTab extends CustomSidePanelTab {
+
+    private final ImageRequestHandler imageRequestHandler = new ImageRequestHandler(ServerConnectionHandler.getInstance());
 
     public DatasetSelectorTab() {
         super("Image selector");
@@ -30,33 +33,34 @@ public class DatasetSelectorTab extends CustomSidePanelTab {
         ListViewerBox dsBox = new ListViewerBox(300, sidePanelTab.getMaxWidth()); // Dataset
         ListViewerBox tsBox = new ListViewerBox(300, sidePanelTab.getMaxWidth()); // Tissue slide
 
-        Button loadDataBtn = makeButton("Load Datasets", new Dimensions(40, 100)); 
+        Button loadDataBtn = makeButton("Load Datasets", new Dimensions(40, 100));
         loadDataBtn.setOnAction(e -> MenuActions.updateListViewerBox(dsBox, getDatasets()));
 
-        Button openImgBtn = makeButton("Open Image", new Dimensions(40, 100)); 
+        Button openImgBtn = makeButton("Open Image", new Dimensions(40, 100));
         openImgBtn.setOnAction(e -> {
             try{
                 String dsName = dsBox.getListView().getSelectionModel().selectedItemProperty().getValue();
                 String tsName = tsBox.getListView().getSelectionModel().selectedItemProperty().getValue();
-                MenuActions.setStreamedServer(dsName, tsName);
+                // Pending: wire up to SelectSlideCommand once the async fetch + loader exist.
+                ImmuNetLog.log("Open Image pressed for {}/{} - pending SelectSlideCommand rework", dsName, tsName);
             } catch (NullPointerException exc){
                 ImmuNetLog.error("No dataset of slide selected for opening.", exc);
             }
         });
 
         updateSlideByDataset(dsBox, tsBox);
-        
+
         sidePanelTab.getChildren().addAll(loadDataBtn, dsBox.getBox(), tsBox.getBox(), openImgBtn);
 
         return sidePanelTab;
     }
 
     private List<String> getDatasets(){
-        return ServerRequestHandler.getWebpageAsList("datasets/");
+        return imageRequestHandler.getWebpageAsList("datasets/");
     }
 
     private List<String> getSlides(String dataset){
-        return ServerRequestHandler.getWebpageAsList("datasets/" + dataset + "/");
+        return imageRequestHandler.getWebpageAsList("datasets/" + dataset + "/");
     }
 
     private void updateSlideByDataset(ListViewerBox datasetBox, ListViewerBox slideBox){

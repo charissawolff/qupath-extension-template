@@ -1,4 +1,6 @@
-package org.computational_immunology.ext.ImmuNet.core;
+package org.computational_immunology.ext.ImmuNet.core.handlers;
+
+import org.computational_immunology.ext.ImmuNet.core.ImmuNetLog;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,7 +14,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-public class ServerConnectionHandler {
+public class ServerConnectionHandler implements PageFetcher {
     private static final ServerConnectionHandler INSTANCE = new ServerConnectionHandler();
 
     //service port is 8082
@@ -27,8 +29,7 @@ public class ServerConnectionHandler {
         return INSTANCE;
     }
 
-    public ServerConnectionHandler ()
-    {
+    public ServerConnectionHandler (){
         SSHReady = new CompletableFuture<>();
     }
 

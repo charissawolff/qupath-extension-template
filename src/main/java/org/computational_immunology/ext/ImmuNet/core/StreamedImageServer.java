@@ -25,13 +25,15 @@ public class StreamedImageServer extends AbstractImageServer<BufferedImage> {
     @Override
     public synchronized ImageServerMetadata getMetadata() {
         try {
-            final int width = (int)OwnedTile.tileW;
-            final int height = (int)OwnedTile.tileH;
+            final int width = (int)OwnedTile.getTileW();
+            final int height = (int)OwnedTile.getTileH();
 
             return new ImageServerMetadata.Builder()
                     .width(width)
                     .height(height)
-                    .name(OwnedTile.getPath())
+                    // Temporary: code stands in for a real identifier until dataset/slide
+                    // context (SlideRef) is threaded through to StreamedImageServer.
+                    .name(OwnedTile.getCode())
                     .channels(ImageChannel.getDefaultRGBChannels())
                     .sizeZ(0)
                     .sizeT(0)
@@ -52,12 +54,12 @@ public class StreamedImageServer extends AbstractImageServer<BufferedImage> {
 
     @Override
     protected String createID() {
-        return OwnedTile.getPath();
+        return OwnedTile.getCode();
     }
 
     @Override
     public Collection<URI> getURIs() {
-        return List.of(URI.create(OwnedTile.getPath()));
+        return List.of(URI.create(OwnedTile.getCode()));
     }
 
     @Override
